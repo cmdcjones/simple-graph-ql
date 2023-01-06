@@ -26,7 +26,7 @@ let links: NexusGenObjects["Link"][] = [
 export const LinkQuery = extendType({
     type: "Query",
 
-    // extend Query type with root fields
+    // extend LinkQuery type with root fields
     definition(t) {
 
         // add root field "feed" -> [Link!]!
@@ -58,7 +58,7 @@ export const LinkQuery = extendType({
 
                     return link;
                 } else {
-                    return null;
+                    throw new Error("A link with the requested ID cannot be found!");
                 }
             },
         });
@@ -87,6 +87,33 @@ export const LinkMutation = extendType({
 
                 links.push(link);
                 return link;
+            },
+        });
+
+        t.nonNull.field("updateLink", {
+            type: "Link",
+            args: {
+                id: nonNull(intArg()),
+                description: stringArg(),
+                url: stringArg(),
+            },
+
+            resolve(parent, args, context) {
+                const { id, description, url } = args;
+                const requestedLink = links.find(link => link.id === id);
+
+                if (requestedLink) {
+                    const link = {
+                        id,
+                        description: description ? description : requestedLink.description,
+                        url: url ? url : requestedLink.url,
+                    };
+
+                    links.map(link => link.id === id ? { id, description, url } : link);
+                    return link;
+                } else {
+                    throw new Error("A link with the requested ID cannot be found!");
+                }
             },
         });
     },
