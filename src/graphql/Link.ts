@@ -1,4 +1,4 @@
-import { extendType, objectType } from "nexus";
+import { extendType, nonNull, objectType, stringArg, intArg } from "nexus";
 import { NexusGenObjects } from "../../nexus-typegen";
 
 export const Link = objectType({
@@ -25,11 +25,68 @@ let links: NexusGenObjects["Link"][] = [
 
 export const LinkQuery = extendType({
     type: "Query",
+
+    // extend Query type with root fields
     definition(t) {
+
+        // add root field "feed" -> [Link!]!
         t.nonNull.list.nonNull.field("feed", {
             type: "Link",
             resolve(parent, args, context, info) {
                 return links;
+            },
+        });
+
+        // add root field "link" -> Link
+        t.field("link", {
+            type: "Link",
+            args: {
+                id: nonNull(intArg()),
+            },
+
+            // returns null if no matching link ID is provided
+            resolve(parent, args, context, info) {
+                const { id } = args;
+                const requestedLink = links.find(link => link.id === id);
+
+                if (requestedLink) {
+                    const link = {
+                        id: requestedLink.id,
+                        description: requestedLink.description,
+                        url: requestedLink.url,
+                    };
+
+                    return link;
+                } else {
+                    return null;
+                }
+            },
+        });
+    },
+});
+
+export const LinkMutation = extendType({
+    type: "Mutation",
+    definition(t) {
+        t.nonNull.field("post", {
+            type: "Link",
+            args: {
+                description: nonNull(stringArg()),
+                url: nonNull(stringArg()),
+            },
+
+            resolve(parent, args, context) {
+                const { description, url } = args;
+
+                let idCount = links.length + 1;
+                const link = {
+                    id: idCount,
+                    description: description,
+                    url: url,
+                };
+
+                links.push(link);
+                return link;
             },
         });
     },
